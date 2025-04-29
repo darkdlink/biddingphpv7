@@ -6,26 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up()
     {
         Schema::create('documents', function (Blueprint $table) {
             $table->id();
-            $table->morphs('documentable'); // Para relacionamento polimórfico
+            $table->morphs('documentable'); // Polimórfico para relacionar com licitações ou propostas
             $table->string('name');
-            $table->string('path');
-            $table->string('type');
-            $table->integer('size')->nullable();
+            $table->string('description')->nullable();
+            $table->string('file_path');
+            $table->string('file_type');
+            $table->unsignedBigInteger('file_size')->nullable();
+            $table->foreignId('uploaded_by')->constrained('users');
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('documents');
     }

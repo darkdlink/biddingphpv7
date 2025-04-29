@@ -3,104 +3,99 @@
 namespace App\Http\Controllers;
 
 use App\Models\Bidding;
-use App\Models\BiddingStatus;
+use App\Models\Entity;
+use App\Services\BiddingApiService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class BiddingController extends Controller
 {
-    public function index()
+    protected $apiService;
+
+    public function __construct(BiddingApiService $apiService)
     {
-        $biddings = Bidding::with('status')->orderBy('closing_date', 'asc')->paginate(15);
-
-        ob_start();
-        include resource_path('views/bidding/index.php');
-        $content = ob_get_clean();
-
-        include resource_path('views/layouts/main.php');
-
-        return $content;
+        $this->apiService = $apiService;
     }
 
-    public function create()
+    public function index(Request $request)
     {
-        $statuses = BiddingStatus::all();
+        $query = Bidding::with('entity');
 
-        ob_start();
-        include resource_path('views/bidding/create.php');
-        $content = ob_get_clean();
+        // Aplicar filtros
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
 
-        include resource_path('views/layouts/main.php');
+        if ($request->has('entity_id')) {
+            $query->where('entity_id', $request->entity_id);
+        }
 
-        return $content;
+        if ($request->has('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('title', 'like', "%{$search}%")
+                  ->orWhere('reference_number', 'like', "%{$search}%")
+                  ->orWhere('description', 'like', "%{$search}%");
+            });
+        }
+
+        // Ordenação
+        $orderBy = $request->order_by ?? 'created_at';
+        $orderDir = $request->order_dir ?? 'desc';
+        $query->orderBy($orderBy, $orderDir);
+
+        // Paginação
+        $biddings = $query->paginate($request->per_page ?? 15);
+
+        return response()->json($biddings);
     }
 
     public function store(Request $request)
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'notice_number' => 'required|string|max:100',
-            'status_id' => 'required|exists:bidding_statuses,id',
-            'entity' => 'required|string|max:255',
-            'estimated_value' => 'nullable|numeric',
-            'publication_date' => 'required|date',
-            'opening_date' => 'required|date',
-            'closing_date' => 'required|date|after:opening_date',
-            'source_url' => 'nullable|url|max:255',
+            'reference_number' => 'required|string|max:100',
+            'entity_id' => 'required|exists:entities,id',
+            'status' => 'required|string|max:50',
+            'opening_date' => 'nullable|date',
+            'closing_date' => 'nullable|date|after_or_equal:opening_date',
         ]);
 
-        $bidding = Bidding::create($validated);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
-        return redirect()->route('biddings.show', $bidding->id);
+        $bidding = Bidding::create($request->all());
+
+        return response()->json($bidding, 201);
     }
 
     public function show($id)
     {
-        $bidding = Bidding::with(['status', 'proposals.company', 'documents'])->findOrFail($id);
-
-        ob_start();
-        include resource_path('views/bidding/show.php');
-        $content = ob_get_clean();
-
-        include resource_path('views/layouts/main.php');
-
-        return $content;
-    }
-
-    public function edit($id)
-    {
-        $bidding = Bidding::findOrFail($id);
-        $statuses = BiddingStatus::all();
-
-        ob_start();
-        include resource_path('views/bidding/edit.php');
-        $content = ob_get_clean();
-
-        include resource_path('views/layouts/main.php');
-
-        return $content;
+        $bidding = Bidding::with(['entity', 'proposals', 'documents'])->findOrFail($id);
+        return response()->json($bidding);
     }
 
     public function update(Request $request, $id)
     {
         $bidding = Bidding::findOrFail($id);
 
-        $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'description' => 'required|string',
-            'notice_number' => 'required|string|max:100',
-            'status_id' => 'required|exists:bidding_statuses,id',
-            'entity' => 'required|string|max:255',
-            'estimated_value' => 'nullable|numeric',
-            'publication_date' => 'required|date',
-            'opening_date' => 'required|date',
-            'closing_date' => 'required|date|after:opening_date',
-            'source_url' => 'nullable|url|max:255',
+        $validator = Validator::make($request->all(), [
+            'title' => 'sometimes|required|string|max:255',
+            'reference_number' => 'sometimes|required|string|max:100',
+            'entity_id' => 'sometimes|required|exists:entities,id',
+            'status' => 'sometimes|required|string|max:50',
+            'opening_date' => 'nullable|date',
+            'closing_date' => 'nullable|date|after_or_equal:opening_date',
         ]);
 
-        $bidding->update($validated);
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
 
-        return redirect()->route('biddings.show', $bidding->id);
+        $bidding->update($request->all());
+
+        return response()->json($bidding);
     }
 
     public function destroy($id)
@@ -108,6 +103,33 @@ class BiddingController extends Controller
         $bidding = Bidding::findOrFail($id);
         $bidding->delete();
 
-        return redirect()->route('biddings.index');
+        return response()->json(null, 204);
+    }
+
+    public function fetchFromApi(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'days' => 'nullable|integer|min:1|max:90',
+            'status' => 'nullable|string',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        $filters = [
+            'published_after' => now()->subDays($request->days ?? 7)->format('Y-m-d'),
+            'status' => $request->status ?? 'open',
+        ];
+
+        $apiData = $this->apiService->fetchBiddings($filters);
+
+        if (isset($apiData['error'])) {
+            return response()->json(['error' => $apiData['error']], 500);
+        }
+
+        $result = $this->apiService->saveBiddingsFromApi($apiData);
+
+        return response()->json($result);
     }
 }

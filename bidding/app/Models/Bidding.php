@@ -2,27 +2,40 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Bidding extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
-        'title', 'description', 'notice_number', 'status_id',
-        'entity', 'estimated_value', 'publication_date',
-        'opening_date', 'closing_date', 'source_url', 'additional_info'
+        'title',
+        'reference_number',
+        'description',
+        'entity_id',
+        'estimated_value',
+        'notice_link',
+        'status',
+        'publication_date',
+        'opening_date',
+        'closing_date',
+        'requirements',
+        'metadata',
+        'internal_notes',
     ];
 
     protected $casts = [
+        'requirements' => 'array',
+        'metadata' => 'array',
         'publication_date' => 'datetime',
         'opening_date' => 'datetime',
         'closing_date' => 'datetime',
-        'additional_info' => 'json',
-        'estimated_value' => 'decimal:2'
     ];
 
-    public function status()
+    public function entity()
     {
-        return $this->belongsTo(BiddingStatus::class);
+        return $this->belongsTo(Entity::class);
     }
 
     public function proposals()
@@ -33,5 +46,10 @@ class Bidding extends Model
     public function documents()
     {
         return $this->morphMany(Document::class, 'documentable');
+    }
+
+    public function alerts()
+    {
+        return $this->morphMany(Alert::class, 'alertable');
     }
 }

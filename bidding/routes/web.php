@@ -1,35 +1,31 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\BiddingController;
-use App\Http\Controllers\ProposalController;
-use App\Http\Controllers\CompanyController;
-use App\Http\Controllers\DocumentController;
-use App\Http\Controllers\DashboardController;
+use Illuminate\Support\Facades\Auth; 
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\HomeController;
 
-// Dashboard
-Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
-// Biddings
-Route::get('/biddings', [BiddingController::class, 'index'])->name('biddings.index');
-Route::get('/biddings/create', [BiddingController::class, 'create'])->name('biddings.create');
-Route::post('/biddings', [BiddingController::class, 'store'])->name('biddings.store');
-Route::get('/biddings/{bidding}', [BiddingController::class, 'show'])->name('biddings.show');
-Route::get('/biddings/{bidding}/edit', [BiddingController::class, 'edit'])->name('biddings.edit');
-Route::put('/biddings/{bidding}', [BiddingController::class, 'update'])->name('biddings.update');
-Route::delete('/biddings/{bidding}', [BiddingController::class, 'destroy'])->name('biddings.destroy');
+Route::get('/', function () {
+    return view('app');
+});
 
-// Proposals
-Route::get('/biddings/{bidding}/proposals/create', [ProposalController::class, 'create'])->name('proposals.create');
-Route::post('/biddings/{bidding}/proposals', [ProposalController::class, 'store'])->name('proposals.store');
-Route::get('/proposals/{proposal}', [ProposalController::class, 'show'])->name('proposals.show');
-Route::get('/proposals/{proposal}/edit', [ProposalController::class, 'edit'])->name('proposals.edit');
-Route::put('/proposals/{proposal}', [ProposalController::class, 'update'])->name('proposals.update');
-Route::delete('/proposals/{proposal}', [ProposalController::class, 'destroy'])->name('proposals.destroy');
+// Rota para autenticação (login/logout)
+Route::view('/login', 'auth.login')->name('login');
+Route::post('/login', 'App\Http\Controllers\Auth\LoginController@login');
+Route::post('/logout', 'App\Http\Controllers\Auth\LoginController@logout')->name('logout');
 
-// Companies
-Route::resource('companies', CompanyController::class);
+// Rota catch-all para a SPA
+Route::get('/{any}', function () {
+    return view('app');
+})->where('any', '.*');
 
-// Documents
-Route::post('/documents/upload', [DocumentController::class, 'upload'])->name('documents.upload');
-Route::delete('/documents/{document}', [DocumentController::class, 'destroy'])->name('documents.destroy');
+
+// Rotas de autenticação simplificadas
+Route::get('/login', [App\Http\Controllers\Auth\LoginController::class, 'showLoginForm'])->name('login');
+Route::post('/login', [App\Http\Controllers\Auth\LoginController::class, 'login']);
+Route::post('/logout', [App\Http\Controllers\Auth\LoginController::class, 'logout'])->name('logout');
+
+Auth::routes();
+
+Route::get('/home', [App\Http\Controllers\HomeController::class, 'index'])->name('home');
