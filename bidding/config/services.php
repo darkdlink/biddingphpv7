@@ -35,10 +35,4 @@ return [
         ],
     ],
 
-    'bidding_api' => [
-        'url' => env('BIDDING_API_URL'),
-        'key' => env('BIDDING_API_KEY'),
-    ],
-
-
 ];

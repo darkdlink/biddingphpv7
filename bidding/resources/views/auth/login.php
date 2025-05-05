@@ -1,153 +1,84 @@
-<?php
-session_start();
-
-// Verificar se já está logado
-if (isset($_SESSION['user'])) {
-    header('Location: /dashboard');
-    exit;
-}
-
-// Processar o formulário de login
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email = $_POST['email'] ?? '';
-    $password = $_POST['password'] ?? '';
-
-    // Validação básica
-    if (empty($email) || empty($password)) {
-        $error = 'Por favor, preencha todos os campos.';
-    } else {
-        // Aqui você implementaria a autenticação real
-        // Este é apenas um exemplo simplificado
-        try {
-            $user = \App\Models\User::where('email', $email)->first();
-
-            if ($user && password_verify($password, $user->password)) {
-                // Login bem-sucedido
-                $_SESSION['user'] = [
-                    'id' => $user->id,
-                    'name' => $user->name,
-                    'email' => $user->email,
-                ];
-
-                // Redirecionar para o dashboard
-                header('Location: /dashboard');
-                exit;
-            } else {
-                $error = 'Email ou senha incorretos.';
-            }
-        } catch (\Exception $e) {
-            $error = 'Erro ao processar o login. Tente novamente.';
-        }
-    }
-}
-?>
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Sistema de Capitalização de Licitações</title>
-    <!-- CSS Bootstrap -->
+    <title>Login - Bidding</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        html, body {
+            height: 100%;
+        }
+
         body {
-            background-color: #f8f9fa;
-            height: 100vh;
             display: flex;
             align-items: center;
-            justify-content: center;
+            background-color: #f5f5f5;
         }
 
-        .login-container {
+        .form-signin {
             width: 100%;
-            max-width: 400px;
+            max-width: 330px;
+            padding: 15px;
+            margin: auto;
         }
 
-        .card {
-            border-radius: 10px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-            border: none;
+        .form-signin .form-floating:focus-within {
+            z-index: 2;
         }
 
-        .card-header {
-            background-color: #2c3e50;
-            color: white;
-            border-radius: 10px 10px 0 0 !important;
-            padding: 20px;
-            text-align: center;
+        .form-signin input[type="email"] {
+            margin-bottom: -1px;
+            border-bottom-right-radius: 0;
+            border-bottom-left-radius: 0;
         }
 
-        .card-header i {
-            font-size: 3rem;
+        .form-signin input[type="password"] {
             margin-bottom: 10px;
-            color: #1abc9c;
-        }
-
-        .form-control {
-            padding: 12px;
-            border-radius: 5px;
-        }
-
-        .btn-primary {
-            background-color: #1abc9c;
-            border-color: #1abc9c;
-            padding: 12px;
-            width: 100%;
-            border-radius: 5px;
-        }
-
-        .btn-primary:hover {
-            background-color: #16a085;
-            border-color: #16a085;
+            border-top-left-radius: 0;
+            border-top-right-radius: 0;
         }
     </style>
 </head>
-<body>
-    <div class="login-container">
-        <div class="card">
-            <div class="card-header">
-                <i class="fas fa-gavel"></i>
-                <h3>Bidding</h3>
-                <p>Sistema de Capitalização de Licitações</p>
+<body class="text-center">
+    <main class="form-signin">
+        <form action="/login" method="POST">
+            <?php echo csrf_field(); ?>
+
+            <h1 class="h3 mb-3 fw-normal">Bidding</h1>
+            <h2 class="h5 mb-3 fw-normal">Sistema de Capitalização de Licitações</h2>
+
+            <?php if (isset($errors) && $errors->any()): ?>
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    <?php foreach ($errors->all() as $error): ?>
+                    <li><?php echo $error; ?></li>
+                    <?php endforeach; ?>
+                </ul>
             </div>
-            <div class="card-body p-4">
-                <?php if (isset($error)): ?>
-                    <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
-                <?php endif; ?>
+            <?php endif; ?>
 
-                <form method="POST" action="/login">
-                    <input type="hidden" name="_token" value="<?php echo csrf_token(); ?>">
-
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-envelope"></i></span>
-                            <input type="email" class="form-control" id="email" name="email" required>
-                        </div>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="password" class="form-label">Senha</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-lock"></i></span>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                        </div>
-                    </div>
-
-                    <div class="mb-3 form-check">
-                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                        <label class="form-check-label" for="remember">Lembrar-me</label>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary">Entrar</button>
-                </form>
+            <div class="form-floating">
+                <input type="email" class="form-control" id="email" name="email" placeholder="nome@exemplo.com" value="<?php echo old('email', ''); ?>">
+                <label for="email">Email</label>
             </div>
-        </div>
-    </div>
 
-    <!-- Bootstrap JS and Dependencies -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+            <div class="form-floating">
+                <input type="password" class="form-control" id="password" name="password" placeholder="Senha">
+                <label for="password">Senha</label>
+            </div>
+
+            <div class="checkbox mb-3 text-start">
+                <label>
+                    <input type="checkbox" name="remember"> Lembrar de mim
+                </label>
+            </div>
+
+            <button class="w-100 btn btn-lg btn-primary" type="submit">Entrar</button>
+
+            <p class="mt-5 mb-3 text-muted">&copy; 2024 Bidding</p>
+        </form>
+    </main>
 </body>
 </html>
