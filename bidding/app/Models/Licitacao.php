@@ -14,7 +14,7 @@ class Licitacao extends Model
         'modo_disputa_nome', 'valor_total_estimado', 'situacao_compra_nome',
         'data_inclusao', 'data_publicacao_pncp', 'data_abertura_proposta',
         'data_encerramento_proposta', 'link_sistema_origem', 'is_srp',
-        'uf', 'municipio', 'cnpj_orgao', 'analisada', 'interesse'
+        'uf', 'municipio', 'cnpj', 'analisada', 'interesse'
     ];
 
     protected $casts = [
@@ -25,7 +25,11 @@ class Licitacao extends Model
         'is_srp' => 'boolean',
         'analisada' => 'boolean',
         'interesse' => 'boolean',
+        'valor_total_estimado' => 'float'
     ];
+
+    // Desabilitar guarded para facilitar testes
+    protected $guarded = [];
 
     public function propostas()
     {

@@ -13,34 +13,42 @@ class PropostaController extends Controller
 {
     public function index(Request $request)
     {
-        $propostas = Proposta::with(['licitacao', 'cliente']);
+        try {
+            $propostas = Proposta::with(['licitacao', 'cliente']);
 
-        // Filtros
-        if ($request->has('cliente_id') && $request->cliente_id) {
-            $propostas->where('cliente_id', $request->cliente_id);
+            // Filtros
+            if ($request->has('cliente_id') && $request->cliente_id) {
+                $propostas->where('cliente_id', $request->cliente_id);
+            }
+
+            if ($request->has('status') && $request->status) {
+                $propostas->where('status', $request->status);
+            }
+
+            if ($request->has('data_min') && $request->data_min) {
+                $propostas->whereDate('data_envio', '>=', $request->data_min);
+            }
+
+            if ($request->has('data_max') && $request->data_max) {
+                $propostas->whereDate('data_envio', '<=', $request->data_max);
+            }
+
+            $propostas = $propostas->orderBy('created_at', 'desc')->paginate(15);
+            $clientes = Cliente::all();
+
+            return view('propostas.index', [
+                'propostas' => $propostas,
+                'clientes' => $clientes,
+                'filtros' => $request->all()
+            ]);
+        } catch (\Exception $e) {
+            return view('propostas.index', [
+                'propostas' => collect(),
+                'clientes' => collect(),
+                'filtros' => $request->all(),
+                'error' => $e->getMessage()
+            ]);
         }
-
-        if ($request->has('status') && $request->status) {
-            $propostas->where('status', $request->status);
-        }
-
-        if ($request->has('data_min') && $request->data_min) {
-            $propostas->whereDate('created_at', '>=', $request->data_min);
-        }
-
-        if ($request->has('data_max') && $request->data_max) {
-            $propostas->whereDate('created_at', '<=', $request->data_max);
-        }
-
-        $propostas = $propostas->orderBy('created_at', 'desc')->paginate(15);
-
-        $clientes = Cliente::all();
-
-        return view('propostas.index', [
-            'propostas' => $propostas,
-            'clientes' => $clientes,
-            'filtros' => $request->all()
-        ]);
     }
 
     public function create()
