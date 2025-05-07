@@ -243,3 +243,7 @@ Route::resource('clientes', App\Http\Controllers\ClienteController::class);
 
 // Rota para obter clientes em formato JSON (para uso em requisições AJAX)
 Route::get('/clientes/json', [App\Http\Controllers\ClienteController::class, 'getClientesJson'])->name('clientes.json');
+
+// Rotas para filtro por segmento
+Route::get('/licitacoes/segmento', [App\Http\Controllers\LicitacaoController::class, 'segmento'])->name('licitacoes.segmento');
+Route::post('/licitacoes/sincronizar/segmento', [App\Http\Controllers\LicitacaoController::class, 'sincronizarPorSegmento'])->name('licitacoes.sincronizar.segmento');
